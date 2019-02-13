@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
-import sys, requests, json, operator, pandas
-from bs4 import BeautifulSoup
+import sys, requests, json, operator
 from beautifultable import BeautifulTable
 
 #Get team nums
@@ -11,18 +10,29 @@ else:
     print("Please enter the robotevents URL >> ", end="")
     url = input()
 
-soup = BeautifulSoup(requests.get(url).text, features="lxml")
+#Extract sku from URL
+sku = (url.rsplit('/', 1)[-1]).split(".html")[0]
 
-print
-#Get team num table from robotevents
-teamListTable = pandas.read_html(str(soup), attrs={"id":"data-table"})[0]
-teamNums = teamListTable["Team"].values
+#Get team nums from vexdb
+teamNums = list()
+searchParameters = {"sku":sku}
+rawresponse = requests.get("https://api.vexdb.io/v1/get_teams", params = searchParameters)
+teamNumJson = json.loads(rawresponse.text)
+for team in teamNumJson["result"]:
+    teamNums.append(team["number"])
+
+#Grab event name
+searchParameters = {"sku":sku}
+rawresponse = requests.get("https://api.vexdb.io/v1/get_events", params = searchParameters)
+eventInfoJson = (json.loads(rawresponse.text)["result"])
+for event in eventInfoJson:
+    eventName = event["name"]
 
 #Print event info
 eventInfoTable = BeautifulTable()
 eventInfoTable.width_exceed_policy = BeautifulTable.WEP_ELLIPSIS
 eventInfoTable.column_headers = ["\033[1;32mEvent Name\033[0;0m", "\033[1;32m# Teams\033[0;0m"]
-eventInfoTable.append_row([(soup.title.string.strip().replace("Robot Events: ", "")), len(teamNums)])
+eventInfoTable.append_row([eventName, len(teamNums)])
 print(eventInfoTable)
 
 #Team object Class
