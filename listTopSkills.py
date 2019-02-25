@@ -18,6 +18,9 @@ teamNums = list()
 searchParameters = {"sku":sku}
 rawresponse = requests.get("https://api.vexdb.io/v1/get_teams", params = searchParameters)
 teamNumJson = json.loads(rawresponse.text)
+if(teamNumJson['size'] == 0):
+    print("No teams found!")
+    exit()
 for team in teamNumJson["result"]:
     teamNums.append(team["number"])
 
@@ -53,16 +56,19 @@ for index, currentTeam in enumerate(teamNums):
     searchParameters["team"] = currentTeam
     rawresponse = requests.get("https://api.vexdb.io/v1/get_skills", params = searchParameters)
     skillsevents = json.loads(rawresponse.text)
-    newTeam = Team(currentTeam)
-    for run in skillsevents["result"]:
-        scoreType = run["type"]
-        if(scoreType == 0):
-            newTeam.topDriver = run["score"]
-        elif(scoreType == 1):
-            newTeam.topProgramming = run["score"]
-    teamObjList.append(newTeam)
-sys.stdout.write("\r                                                                            \n")
-sys.stdout.flush()
+    if(skillsevents['status'] == 0):
+        break
+    else:
+        newTeam = Team(currentTeam)
+        for run in skillsevents["result"]:
+            scoreType = run["type"]
+            if(scoreType == 0):
+                newTeam.topDriver = run["score"]
+            elif(scoreType == 1):
+                newTeam.topProgramming = run["score"]
+                teamObjList.append(newTeam)
+            sys.stdout.write("\r                                                                            \n")
+            sys.stdout.flush()
 
 #Sort team objects by total of driver and programming skills scores
 sortedTeamObjList = sorted(teamObjList, key=lambda teamObj: (teamObj.topDriver + teamObj.topProgramming), reverse=True)
